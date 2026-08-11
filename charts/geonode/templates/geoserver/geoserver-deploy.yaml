@@ -29,48 +29,6 @@ spec:
 
       terminationGracePeriodSeconds: 3
       initContainers:
-      - name: {{ .Values.geoserver_data.container_name }}
-        securityContext:
-          runAsNonRoot: {{- if hasKey $gsctx "runAsNonRoot" }} {{ $gsctx.runAsNonRoot }} {{- else }} true {{- end }}
-          runAsUser: {{- if hasKey $gsctx "runAsUser" }} {{ $gsctx.runAsUser }} {{- else }} {{ .Values.global.securityContext.runAsUser }} {{- end }}
-          runAsGroup: {{- if hasKey $gsctx "runAsGroup" }} {{ $gsctx.runAsGroup }} {{- else }} {{ .Values.global.securityContext.runAsGroup }} {{- end }}
-          readOnlyRootFilesystem: true
-          allowPrivilegeEscalation: false
-
-          capabilities:
-            drop:
-              - ALL
-
-          seccompProfile:
-            type: RuntimeDefault
-        image: "{{ .Values.geoserver_data.image.name }}:{{ .Values.geoserver_data.image.tag }}"
-        imagePullPolicy: {{ .Values.geoserver_data.imagePullPolicy }}
-        command:
-        - sh
-        - -c
-        - |
-          if [ ! -f /geoserver_data/data/.geoserver_data_copied ] ; then
-            # Copy defaults from data container
-            echo "copying geoserver_data files into volume ..."
-            cp -r /tmp/geonode/downloaded/data/* /geoserver_data/data/
-
-            # Copy overrides from ConfigMap
-            cp /overrides/config.yaml /geoserver_data/data/printing/            
-
-            touch /geoserver_data/data/.geoserver_data_copied
-          else
-            echo "geoserver_data files already exists, skipping copy ..."
-          fi
-        envFrom:
-        - configMapRef:
-            name:  {{ include "geoserver_pod_name" . }}-env
-        - secretRef:
-            name: {{ .Values.geoserver.secret.existingSecretName | default (include "geoserver_secret_name" .) | quote }}
-        volumeMounts:
-        - name: pvc-geoserver-data
-          mountPath: /geoserver_data/data
-        - name: geoserver-printing-config-yaml
-          mountPath: /overrides
       # initContainer to copy necessary files and be able to mount readonly afterwards 
       - name: seed-geoserver
         securityContext:
